@@ -39,3 +39,26 @@ impl Default for Transaction {
         }
     }
 }
+
+// command side handling
+pub struct PaymentCommand {
+    pub customer_id : String,
+    pub amount: i64,
+    pub currency : Currency,
+    // todo: add other details later to include payment methods n all
+}
+
+#[derive(Debug , Serialize , Deserialize)]
+pub struct PaymentEvent {
+    pub transaction_id: Uuid,
+    pub event_type: PaymentEventType,
+    pub data : serde_json::Value,
+    pub timestamp : chrono::DateTime<Utc>
+}
+
+#[derive(Debug , Serialize , Deserialize)]
+pub enum PaymentEventType {
+    TransactionCreated,
+    TransactionValidated,
+    TransactionFailed
+}
