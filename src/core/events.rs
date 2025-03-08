@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct TransactionCreatedEvent {
     pub event_id: Uuid,
     pub event_type: String,
