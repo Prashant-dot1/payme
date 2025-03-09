@@ -16,7 +16,9 @@ pub struct Transaction {
 pub enum TransactionStatus {
     Pending,
     Completed,
-    Failed,
+    Failed {
+        reason: String
+    },
     Refunded
 }
 
