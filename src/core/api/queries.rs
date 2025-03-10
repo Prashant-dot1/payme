@@ -1,9 +1,8 @@
 use axum::{
-    extract::{Path, Query},
+    extract::Path,
     Json,
 };
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::core::models::TransactionStatus;
