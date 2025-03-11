@@ -53,6 +53,7 @@ impl PaymentStatusUpdatedEvent {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PaymentStatusRequestEvent {
     pub event_id: Uuid,
     pub evnet_type: String,
