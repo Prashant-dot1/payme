@@ -52,3 +52,17 @@ impl PaymentStatusUpdatedEvent {
         Self { event_id: Uuid::new_v4(), event_type: "STATUS_UPDATED".to_string(), timestamp: Utc::now(), transaction_id, status, stripe_payment_id }
     }
 }
+
+pub struct PaymentStatusRequestEvent {
+    pub event_id: Uuid,
+    pub evnet_type: String,
+    pub timestamp: DateTime<Utc>,
+    pub transaction_id: Uuid,
+    pub reply_topic: String
+}
+
+impl PaymentStatusRequestEvent{
+    pub fn new(transaction_id: Uuid) -> Self {
+        Self { event_id: Uuid::new_v4(), evnet_type: "STATUS_REQUEST".to_string(), timestamp: Utc::now(), transaction_id , reply_topic: "payment-status-response".to_string() }
+    }
+}
