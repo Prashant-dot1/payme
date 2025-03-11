@@ -39,7 +39,7 @@ impl Query {
                     todo!("database integration needed here")
                 },
                 Err(e) => {
-                    eprintln!("Failed to publish the status req event to event bus: {}", e);
+                    eprintln!("Failed to publish the status req event to event bus: {}", e.0);
 
                     todo!("need to return a valid json response here");
                 }

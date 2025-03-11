@@ -1,4 +1,4 @@
-use axum::{routing::{post,get},Router};
+use axum::{extract::Query, routing::{get, post}, Router};
 pub mod commands;
 pub mod queries;
 
@@ -24,5 +24,5 @@ fn transaction_routes() -> Router {
 
 
 fn query_routes() -> Router {
-    Router::new().route("/status/:id", get(queries::get_payment_status))
+    Router::new().route("/status/:id", get(todo!()))
 }
