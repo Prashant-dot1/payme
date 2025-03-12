@@ -24,5 +24,6 @@ fn transaction_routes() -> Router {
 
 
 fn query_routes() -> Router {
+    // need to figure out a way to dal with the handler taking a reference
     Router::new().route("/status/:id", get(todo!()))
 }
