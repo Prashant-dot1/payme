@@ -1,4 +1,5 @@
-use axum::{extract::Query, routing::{get, post}, Router};
+use axum::{routing::{get, post}, Router};
+use queries::Query;
 pub mod commands;
 pub mod queries;
 
@@ -24,6 +25,7 @@ fn transaction_routes() -> Router {
 
 
 fn query_routes() -> Router {
+    let query = Query::new("localhost:9092");
     // need to figure out a way to dal with the handler taking a reference
-    Router::new().route("/status/:id", get(todo!()))
+    Router::new().route("/status/:id", get(todo!("need a way to supply the handler")))
 }
