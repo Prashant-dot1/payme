@@ -64,3 +64,16 @@ pub enum PaymentEventType {
     TransactionValidated,
     TransactionFailed
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IdempotencyKey(String);
+
+impl IdempotencyKey {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+
+    pub fn from_string(key: String) -> Self {
+        Self(key)
+    }
+}

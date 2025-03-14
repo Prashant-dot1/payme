@@ -25,8 +25,16 @@ impl Query {
         Self { producer }
     }
 
-    pub async fn get_payment_status(&self,Path(transaction_id): Path<Uuid>) -> Json<()> {
-    
+    pub async fn get_payment_status(
+        &self,
+        idempotency_key: String,
+        Path(transaction_id): Path<Uuid>
+    ) -> Json<()> {
+        // Check idempotency
+        if let Some(cached_response) = self.check_idempotency(&idempotency_key).await {
+            return cached_response;
+        }
+
         let req_event = PaymentStatusRequestEvent::new(transaction_id);
 
         let payload = serde_json::to_string(&req_event).unwrap();
@@ -44,7 +52,11 @@ impl Query {
                     todo!("need to return a valid json response here");
                 }
         }
-        
+    }
+
+    async fn check_idempotency(&self, key: &str) -> Option<Json<()>> {
+        // Check cache/database for previous response
+        None
     }
 }
 
