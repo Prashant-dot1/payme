@@ -66,7 +66,7 @@ pub enum PaymentEventType {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IdempotencyKey(String);
+pub struct IdempotencyKey(pub String);
 
 impl IdempotencyKey {
     pub fn new() -> Self {

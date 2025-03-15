@@ -36,7 +36,7 @@ pub async fn create_transaction(
     Json(req_payload): Json<CreateTransactionRequest>
 ) -> Json<CreateTransactionResponse> {
     // Check if we've seen this idempotency key before
-    if let Some(cached_response) = check_idempotency_key(&idempotency_key).await {
+    if let Some(cached_response) = check_idempotency_key(&idempotency_key.0).await {
         return Json(cached_response);
     }
 
@@ -57,7 +57,7 @@ pub async fn create_transaction(
     }
 
     // Store the response with the idempotency key
-    cache_response(&idempotency_key, &CreateTransactionResponse {
+    cache_response(&idempotency_key.0, &CreateTransactionResponse {
         id: transaction_id,
         status: TransactionStatus::Pending
     }).await;
