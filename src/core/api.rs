@@ -16,6 +16,7 @@ fn payments_routes() -> Router {
         .nest("/queries", query_routes())
 }
 
+#[axum::debug_handler]
 fn transaction_routes() -> Router {
     Router::new()
         .route("/", post(commands::create_transaction))
