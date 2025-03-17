@@ -1,5 +1,5 @@
 use axum::{
-    body::{to_bytes, Body, Bytes}, extract::Request, Json
+    body::{to_bytes, Body, Bytes}, extract::Request, http::header, Json
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -31,9 +31,9 @@ pub struct CreateTransactionResponse {
 }
 
 pub async fn create_transaction(request: Request<Body>) -> Json<CreateTransactionResponse> {
-    // Extract idempotency key from headers
-    let idempotency_key = request
-        .headers()
+    // Extract idempotency key from headers FIRST
+    let headers = request.headers().clone();
+    let idempotency_key = headers
         .get("x-idempotency-key")
         .and_then(|h| h.to_str().ok())
         .unwrap_or_default();
@@ -43,8 +43,8 @@ pub async fn create_transaction(request: Request<Body>) -> Json<CreateTransactio
         return Json(cached_response);
     }
 
-    // Extract request body
-    let body = request.into_body().into();
+    // NOW we can consume the body
+    let body = request.into_body();
     let body_bytes = to_bytes(body, usize::MAX).await.expect("Failed to parse the body in bytes");
 
     
