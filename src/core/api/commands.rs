@@ -1,4 +1,6 @@
-use axum::Json;
+use axum::{
+    body::{to_bytes, Body, Bytes}, extract::Request, Json
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use axum_extra::{
@@ -28,17 +30,26 @@ pub struct CreateTransactionResponse {
     status: TransactionStatus
 }
 
-static IDEMPOTENCY_KEY: HeaderName = HeaderName::from_static("x-idempotency-key");
+pub async fn create_transaction(request: Request<Body>) -> Json<CreateTransactionResponse> {
+    // Extract idempotency key from headers
+    let idempotency_key = request
+        .headers()
+        .get("x-idempotency-key")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or_default();
 
-/* Handlers */
-pub async fn create_transaction(
-    TypedHeader(idempotency_key): TypedHeader<IdempotencyKey>,
-    Json(req_payload): Json<CreateTransactionRequest>
-) -> Json<CreateTransactionResponse> {
-    // Check if we've seen this idempotency key before
-    if let Some(cached_response) = check_idempotency_key(&idempotency_key.0).await {
+    // Check idempotency
+    if let Some(cached_response) = check_idempotency_key(idempotency_key).await {
         return Json(cached_response);
     }
+
+    // Extract request body
+    let body = request.into_body().into();
+    let body_bytes = to_bytes(body, usize::MAX).await.expect("Failed to parse the body in bytes");
+
+    
+    let req_payload: CreateTransactionRequest = serde_json::from_slice(&body_bytes)
+        .expect("Failed to parse request");
 
     let transaction_id = Uuid::new_v4();
     let event = TransactionCreatedEvent::new(
@@ -46,7 +57,7 @@ pub async fn create_transaction(
         req_payload.amount,
         req_payload.currency,
         req_payload.merchant_id,
-        req_payload.customer_id
+        req_payload.customer_id,
     );
 
 
@@ -56,16 +67,14 @@ pub async fn create_transaction(
         eprintln!("Failed to publish event to topic: {}", e);
     }
 
-    // Store the response with the idempotency key
-    cache_response(&idempotency_key.0, &CreateTransactionResponse {
+    let response = CreateTransactionResponse {
         id: transaction_id,
-        status: TransactionStatus::Pending
-    }).await;
+        status: TransactionStatus::Pending,
+    };
 
-    Json(CreateTransactionResponse {
-        id: transaction_id,
-        status: TransactionStatus::Pending
-    })
+    cache_response(idempotency_key, &response).await;
+
+    Json(response)
 }
 
 async fn check_idempotency_key(key: &str) -> Option<CreateTransactionResponse> {

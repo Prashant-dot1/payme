@@ -1,9 +1,7 @@
 use axum::{routing::{get, post}, Router};
-use queries::Query;
+use crate::core::api::queries::Query;
 pub mod commands;
 pub mod queries;
-
-
 
 pub async fn create_router() -> Router {
     Router::new().nest("/api/v1", payments_routes())
@@ -16,17 +14,19 @@ fn payments_routes() -> Router {
         .nest("/queries", query_routes())
 }
 
-#[axum::debug_handler]
+
 fn transaction_routes() -> Router {
     Router::new()
         .route("/", post(commands::create_transaction))
-
 }
 
 
 
 fn query_routes() -> Router {
     let query = Query::new("localhost:9092");
-    // need to figure out a way to dal with the handler taking a reference
-    Router::new().route("/status/:id", get(todo!("need a way to supply the handler")))
+    Router::new()
+        .route(
+            "/status/:id", 
+            get(move |path| query.get_payment_status("".to_string(), path))
+        )
 }
