@@ -24,10 +24,10 @@ pub struct CreateTransactionRequest {
 
 /*response payload types*/
 
-#[derive(Serialize)]
+#[derive(Serialize,Deserialize)]
 pub struct CreateTransactionResponse {
-    id : Uuid,
-    status: TransactionStatus
+    pub id : Uuid,
+    pub status: TransactionStatus
 }
 
 pub async fn create_transaction(request: Request<Body>) -> Json<CreateTransactionResponse> {

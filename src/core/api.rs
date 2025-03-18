@@ -2,6 +2,7 @@ use axum::{routing::{get, post}, Router};
 use queries::Query;
 pub mod commands;
 pub mod queries;
+pub mod commands_test;
 
 
 pub async fn create_router() -> Router {

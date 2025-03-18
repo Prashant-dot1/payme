@@ -12,7 +12,7 @@ pub struct Transaction {
     pub update_at : chrono::DateTime<Utc>
 }
 
-#[derive(Debug, Serialize , Deserialize)]
+#[derive(Debug, Serialize , Deserialize,PartialEq)]
 pub enum TransactionStatus {
     Pending,
     Completed,
