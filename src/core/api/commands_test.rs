@@ -67,7 +67,7 @@ mod tests {
                 .header("x-idempotency-key", "test_key_2")
                 .header("content-type", "application/json")
                 .body(Body::from(serde_json::to_string(&request_body).unwrap()))
-                .unwrap()
+                .unwrap();
         };
 
         // Send first request
