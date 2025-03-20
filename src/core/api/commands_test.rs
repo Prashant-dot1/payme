@@ -4,7 +4,7 @@ mod tests {
 
     use axum::{
         body::{to_bytes, Body},
-        http::{self, Request, StatusCode},
+        http::{self, Request, StatusCode}, routing::IntoMakeService, ServiceExt,
     };
     use serde_json::json;
     use tower::ServiceExt;
@@ -50,6 +50,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_transaction_idempotency() {
         let app = create_router().await;
+        let app =IntoMakeService::into_make_service(app);
 
         // Create test request with idempotency key
         let request_body = json!({
