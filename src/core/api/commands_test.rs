@@ -1,23 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use std::usize;
-
-    use axum::{
-        body::{to_bytes, Body},
-        http::{self, Request, StatusCode}, routing::IntoMakeService, ServiceExt,
-    };
+    use axum_test::TestServer;
     use serde_json::json;
-    use tower::ServiceExt;
 
     use super::*;
     use crate::core::{api::{commands::CreateTransactionResponse, create_router}, models::TransactionStatus};
 
     #[tokio::test]
     async fn test_create_transaction_success() {
-        // Create app
         let app = create_router().await;
+        let server = TestServer::new(app).unwrap();
 
-        // Create test request
         let request_body = json!({
             "amount": 1000,
             "currency": "USD",
@@ -26,33 +19,24 @@ mod tests {
             "idempotency_key": "test_key_1"
         });
 
-        let request = Request::builder()
-            .method(http::Method::POST)
-            .uri("/api/v1/transaction")
+        let response = server
+            .post("/api/v1/transaction")
             .header("x-idempotency-key", "test_key_1")
-            .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&request_body).unwrap()))
-            .unwrap();
+            .json(&request_body)
+            .await;
 
-        // Send request
-        let response = app.oneshot(request).await.unwrap();
+        response.assert_status_ok();
         
-        // Assert response
-        assert_eq!(response.status(), StatusCode::OK);
-        
-        let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let response: CreateTransactionResponse = serde_json::from_slice(&body_bytes).unwrap();
-        
-        assert!(response.id.to_string().len() > 0);
-        assert_eq!(response.status, TransactionStatus::Pending);
+        let response_body = response.json::<CreateTransactionResponse>();
+        assert!(response_body.id.to_string().len() > 0);
+        assert_eq!(response_body.status, TransactionStatus::Pending);
     }
 
     #[tokio::test]
     async fn test_create_transaction_idempotency() {
         let app = create_router().await;
-        let app =IntoMakeService::into_make_service(app);
+        let server = TestServer::new(app).unwrap();
 
-        // Create test request with idempotency key
         let request_body = json!({
             "amount": 1000,
             "currency": "USD",
@@ -61,33 +45,29 @@ mod tests {
             "idempotency_key": "test_key_2"
         });
 
-        let make_request = || {
-            Request::builder()
-                .method(http::Method::POST)
-                .uri("/api/v1/transaction")
-                .header("x-idempotency-key", "test_key_2")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_string(&request_body).unwrap()))
-                .unwrap();
-        };
+        // First request
+        let response1 = server
+            .post("/api/v1/transaction")
+            .header("x-idempotency-key", "test_key_2")
+            .json(&request_body)
+            .await;
+        let body1 = response1.json::<CreateTransactionResponse>();
 
-        // Send first request
-        let response1 = app.clone().oneshot(make_request()).await.unwrap();
-        let body1 = to_bytes(response1.into_body(), usize::MAX).await.expect("failed to parse the repsonse body");
-        let response1: CreateTransactionResponse = serde_json::from_slice(&body1).unwrap();
+        // Second request with same idempotency key
+        let response2 = server
+            .post("/api/v1/transaction")
+            .header("x-idempotency-key", "test_key_2")
+            .json(&request_body)
+            .await;
+        let body2 = response2.json::<CreateTransactionResponse>();
 
-        // Send second request with same idempotency key
-        let response2 = app.oneshot(make_request()).await.unwrap();
-        let body2 = to_bytes(response2.into_body(), usize::MAX).await.unwrap();
-        let response2: CreateTransactionResponse = serde_json::from_slice(&body2).unwrap();
-
-        // Both responses should have same transaction ID
-        assert_eq!(response1.id, response2.id);
+        assert_eq!(body1.id, body2.id);
     }
 
     #[tokio::test]
     async fn test_create_transaction_missing_idempotency() {
         let app = create_router().await;
+        let server = TestServer::new(app).unwrap();
 
         let request_body = json!({
             "amount": 1000,
@@ -96,16 +76,11 @@ mod tests {
             "customer_id": "cust_123"
         });
 
-        let request = Request::builder()
-            .method(http::Method::POST)
-            .uri("/api/v1/transaction")
-            .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&request_body).unwrap()))
-            .unwrap();
+        let response = server
+            .post("/api/v1/transaction")
+            .json(&request_body)
+            .await;
 
-        let response = app.oneshot(request).await.unwrap();
-        
-        // Should return 400 Bad Request when idempotency key is missing
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        response.assert_status(StatusCode::BAD_REQUEST);
     }
 } 
