@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use axum_test::TestServer;
+    use hyper::StatusCode;
     use serde_json::json;
 
     use super::*;
@@ -21,7 +22,7 @@ mod tests {
 
         let response = server
             .post("/api/v1/transaction")
-            .header("x-idempotency-key", "test_key_1")
+            .add_header("x-idempotency-key", "test_key_1")
             .json(&request_body)
             .await;
 
@@ -48,7 +49,7 @@ mod tests {
         // First request
         let response1 = server
             .post("/api/v1/transaction")
-            .header("x-idempotency-key", "test_key_2")
+            .add_header("x-idempotency-key", "test_key_2")
             .json(&request_body)
             .await;
         let body1 = response1.json::<CreateTransactionResponse>();
@@ -56,7 +57,7 @@ mod tests {
         // Second request with same idempotency key
         let response2 = server
             .post("/api/v1/transaction")
-            .header("x-idempotency-key", "test_key_2")
+            .add_header("x-idempotency-key", "test_key_2")
             .json(&request_body)
             .await;
         let body2 = response2.json::<CreateTransactionResponse>();
