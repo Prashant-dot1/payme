@@ -1,15 +1,16 @@
+use std::pin::Pin;
+use http::request::Request as MyRequest;
 use axum::{
-    extract::{FromRequestParts, Request, State},
-    http::{request::Parts, StatusCode},
+    body::Bytes,
+    extract::FromRequestParts,
     response::Response,
     RequestPartsExt,
 };
 use tower::ServiceExt;
 use tower_http::auth::AuthorizeRequest;
-use http_body::{Body, Empty};
-// use http_body_util::combinators::box_body::BoxBody;
+use http_body::Body as HttpBody;
 
-use crate::api::authentication::{AuthenticationError, AuthenticationService, Claims, LoginRequest};
+use crate::api::authentication::{AuthenticationError, AuthenticationService, Claims};
 
 #[derive(Clone)]
 pub struct AuthMiddleware {
@@ -26,17 +27,19 @@ impl AuthMiddleware {
 
 impl AuthorizeRequest for AuthMiddleware {
     type Output = ();
-    type ResponseBody = Box<dyn Body>;
+    type ResponseBody = Pin<Box<dyn HttpBody<Data = Bytes, Error = AuthenticationError> + Send + 'static>>;
 
-    fn unauthorized_response<B>(&mut self, request: &Request<B>) -> Response<Self::ResponseBody> {
-        Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .body(Box::new(Body::new(Empty::new())))
-            .unwrap()
+    fn unauthorized_response<B>(&mut self, _request: &MyRequest<B>) -> Response<Self::ResponseBody> {
+        // let body = Box::pin(http_body_util::Empty::new());
+        // Response::builder()
+        //     .status(StatusCode::UNAUTHORIZED)
+        //     .body(body)
+        //     .unwrap()
+        todo!("this doesn't seem to work ");
     }
 
-    fn authorize<B>(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
-        let (mut parts, _) = request.into_parts();
+    fn authorize<B>(&mut self, request: &MyRequest<B>) -> Option<Self::Output> {
+        let (mut parts, body) = request.into_parts();
         let auth_header = parts
             .headers
             .get("Authorization")
@@ -44,17 +47,18 @@ impl AuthorizeRequest for AuthMiddleware {
             .ok_or_else(|| self.unauthorized_response(request))?;
 
         if !auth_header.starts_with("Bearer ") {
-            return Err(self.unauthorized_response(request));
+            self.unauthorized_response(request);
+            return None;
         }
 
         let token = auth_header.trim_start_matches("Bearer ");
         let claims = self.auth_service.validate_token(token)
-            .map_err(|_| self.unauthorized_response(request))?;
+            .ok()?;
 
         parts.extensions.insert(claims);
-        *request = Request::from_parts(parts, ());
+        *request = Request::from_parts(parts, body);
 
-        Ok(())
+        Some(())
     }
 }
 
